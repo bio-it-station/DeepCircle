@@ -2,4 +2,4 @@ output/
 genome/
 bin/__pycache__
 bin/*.ipynb*
-
+.Rhistory

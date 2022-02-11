@@ -27,7 +27,74 @@ def get_fasta(fp):
             else:
                 seq.append(line)
         if name: yield (name, ''.join(seq))
+def get_1000_window(input_bed, genome_dir):
+    chrm = []
+    start = [] 
+    end = []
+    with open(input_bed) as in_f:
+        reader = csv.reader(in_f, delimiter='\t')
+        for row in reader:
+            chrm.append(row[0])
+            start.append(row[1])
+            end.append(row[2])
+    chrm = np.array(chrm)
+    start = np.array(start, dtype = int)
+    end = np.array(end, dtype = int)
+    bed = np.stack([chrm, start, end]).transpose()
+    print(f"Number of lines before processing: {len(chrm)}")
+    #obtain 1000bp window centered on eccDNA midpoint
 
+    smaller_1000 = bed[((bed[:, 2].astype(int) - bed[:, 1].astype(int)) <= 1000), :]
+    larger_1000 = bed[((bed[:, 2].astype(int) - bed[:, 1].astype(int)) > 1000), :]
+    window_1000 = bed[((bed[:, 2].astype(int) - bed[:, 1].astype(int)) <= 1000), :]
+    shift = (1000 - (window_1000[:,2].astype(int) - window_1000[:,1].astype(int)))/2
+    window_1000[:, 1] = (window_1000[:, 1].astype(int) - np.floor(shift)).astype(int)
+    window_1000[:, 2] = (window_1000[:, 2].astype(int) + np.ceil(shift)).astype(int)
+    print("Number of records with 1000 bp window:", len(window_1000))
+
+    hg38 = {}
+    with open(genome_dir) as in_g:
+        reader = csv.reader(in_g, delimiter='\t')
+        for row in reader:
+            hg38[row[0]] = row[1]
+
+    #adjust coordinate if < 0 or > chromosome size
+    #if coordinate < 0 then change to 0
+    lower_than_0 = np.sum(window_1000[:, 1].astype(float) < 0) + np.sum(window_1000[:, 2].astype(float) < 0)
+
+    window_1000[window_1000[:, 1].astype(float) < 0, 1] = 0
+    window_1000[window_1000[:, 2].astype(float) < 0, 1] = 0
+
+    size_of_matched_chr_vec = np.array([hg38[chrm] for chrm in window_1000[:, 0]], dtype = int)
+    #if coordinate > chromosome size then change to chromosome size
+    number_of_overbound = np.sum((window_1000[:, 1].astype(float) - size_of_matched_chr_vec) > 0) + np.sum((window_1000[:, 2].astype(float) - size_of_matched_chr_vec) > 0)
+
+    window_1000[(window_1000[:, 1].astype(float) - size_of_matched_chr_vec) > 0, 1] = size_of_matched_chr_vec[(window_1000[:, 1].astype(float) - size_of_matched_chr_vec) > 0]
+    window_1000[(window_1000[:, 2].astype(float) - size_of_matched_chr_vec) > 0, 2] = size_of_matched_chr_vec[(window_1000[:, 2].astype(float) - size_of_matched_chr_vec) > 0]
+
+    print("Number of records with exceeding boundary: ", number_of_overbound)
+    print("Number of records coordinate < 0:", lower_than_0)
+
+    match = re.search("(\w+\.bed)", input_bed)
+    fname = match.group()
+    fname = fname.split(".")[0]
+
+    window_out_path = f"../output/{fname}_1000_window.bed"
+    smaller_out_path = f"../output/{fname}_smaller_1000.bed"
+    larger_out_path = f"../output/{fname}_larger_1000.bed"
+
+    window_seq_name_list = seq_name_list = [":".join([bed[0], "-".join([bed[1], bed[2]])])for bed in window_1000]
+    smaller_seq_name_list = seq_name_list = [":".join([bed[0], "-".join([bed[1], bed[2]])])for bed in smaller_1000]
+    larger_seq_name_list = seq_name_list = [":".join([bed[0], "-".join([bed[1], bed[2]])])for bed in larger_1000]
+
+    seq_name_bed(window_out_path, window_seq_name_list)
+    seq_name_bed(smaller_out_path, smaller_seq_name_list)
+    seq_name_bed(larger_out_path, larger_seq_name_list)
+
+    print(f"Window written to: {window_out_path}")
+    print(f"Smaller than 1000 written to: {smaller_out_path}")
+    print(f"Larger than 1000 written to: {larger_out_path}")
+    
 def read_fasta(Dir):
     names = []
     seqs = []
@@ -322,8 +389,8 @@ def preprocessing(ncpus, genome_fa, genome, eccdna_bed_dir):
     match = re.search("(\w+\.bed)", eccdna_bed_dir)
     fname = match.group()
     fname = fname.split(".")[0]
-    os.system(f"Rscript get_1000_window.R {eccdna_bed_dir} {genome}")
-
+    get_1000_window(eccdna_bed_dir, genome)
+    
     #Shuffle the 1000 bp window
     window_bed_Dir = f'../output/{fname}_1000_window.bed'
     Con_bed_Dir = f'../output/rand_{fname}_1000_window.bed'
