@@ -390,7 +390,9 @@ def preprocessing(ncpus, genome_fa, genome, eccdna_bed_dir):
     fname = match.group()
     fname = fname.split(".")[0]
     get_1000_window(eccdna_bed_dir, genome)
-    
+    #Check if there's output directory
+    if not os.path.isdir("./output"):
+        os.system("mkdir output")
     #Shuffle the 1000 bp window
     window_bed_Dir = f'../output/{fname}_1000_window.bed'
     Con_bed_Dir = f'../output/rand_{fname}_1000_window.bed'
