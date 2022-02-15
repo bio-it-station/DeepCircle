@@ -36,10 +36,10 @@ parser.add_argument('-batch',
                     '--batch-size',
                     type=int,
                     help='Number of batch size for training')
-parser.add_argument('-out',
+parser.add_argument('-dir',
                     '--output-prediction',
-                    action = "store_true",
-                    help='Output prediction results of the model')
+                    type=str,
+                    help='Directory to output prediction results of the model [default: ./output]')
 
 args = parser.parse_args()
 arr = preprocessing(ncpus = args.number_of_cpus, genome_fa = args.genome_fasta, genome = args.genome, eccdna_bed_dir = args.eccDNA_bed)

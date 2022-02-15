@@ -78,10 +78,10 @@ def get_1000_window(input_bed, genome_dir):
     match = re.search("(\w+\.bed)", input_bed)
     fname = match.group()
     fname = fname.split(".")[0]
-
-    window_out_path = f"../output/{fname}_1000_window.bed"
-    smaller_out_path = f"../output/{fname}_smaller_1000.bed"
-    larger_out_path = f"../output/{fname}_larger_1000.bed"
+    cwd = os.getcwd()
+    window_out_path = f"{cwd}/output/{fname}_1000_window.bed"
+    smaller_out_path = f"{cwd}/output/{fname}_smaller_1000.bed"
+    larger_out_path = f"{cwd}/output/{fname}_larger_1000.bed"
 
     window_seq_name_list = seq_name_list = [":".join([bed[0], "-".join([bed[1], bed[2]])])for bed in window_1000]
     smaller_seq_name_list = seq_name_list = [":".join([bed[0], "-".join([bed[1], bed[2]])])for bed in smaller_1000]
@@ -276,16 +276,17 @@ def get_train_test(control_array, eccDNA_array, test_ratio = 0.2):
     return(train_x, train_y, test_x, test_y, test_y_org, train_shuffle_ind, test_shuffle_ind)
 
 def get_callbacks(name):
-  return [
-    tf.keras.callbacks.ModelCheckpoint(
-    filepath = "../output/models/"+name,
-    monitor="val_binary_crossentropy",
-    verbose=1,
-    save_best_only=True,
-    save_weights_only=True,
-    mode="min",
-    save_freq="epoch"
-    )
+    cwd = os.getcwd()
+    return [
+        tf.keras.callbacks.ModelCheckpoint(
+        filepath = f"{cwd}/output/models/"+name,
+        monitor="val_binary_crossentropy",
+        verbose=1,
+        save_best_only=True,
+        save_weights_only=True,
+        mode="min",
+        save_freq="epoch"
+        )
   ]
 
 def get_optimizer():
@@ -393,10 +394,11 @@ def preprocessing(ncpus, genome_fa, genome, eccdna_bed_dir):
     #Check if there's output directory
     if not os.path.isdir("./output"):
         os.system("mkdir output")
+    cwd = os.getcwd()
     #Shuffle the 1000 bp window
-    window_bed_Dir = f'../output/{fname}_1000_window.bed'
-    Con_bed_Dir = f'../output/rand_{fname}_1000_window.bed'
-    small_eccDNA_bed_Dir = f'../output/{fname}_smaller_1000.bed'
+    window_bed_Dir = f'{cwd}/output/{fname}_1000_window.bed'
+    Con_bed_Dir = f'{cwd}/output/rand_{fname}_1000_window.bed'
+    small_eccDNA_bed_Dir = f'{cwd}/output/{fname}_smaller_1000.bed'
     os.system(f"bedtools shuffle -i {window_bed_Dir} -g {genome} -excl {window_bed_Dir} -maxTries 5000  > {Con_bed_Dir}")
 
     #Convert bed to fasta
@@ -443,7 +445,7 @@ def eccDNA_CNN_train(control_flank_split_array,
                      test_ratio,
                      epochs,
                      batch_size,
-                     output_bed = True):
+                     output_bed):
     ##For model training
     #Split training and testing data
     train_x, train_y, test_x, test_y, test_y_org, train_shuffle_ind, test_shuffle_ind = get_train_test(control_flank_split_array, eccDNA_flank_split_array, test_ratio = test_ratio)
@@ -462,18 +464,27 @@ def eccDNA_CNN_train(control_flank_split_array,
     confusion_matrix = test_and_confusion_mat(model, model_name, test_x, test_y_org, epi_type= "testing result", cell = model_name)
     print(confusion_matrix[0])
     print(confusion_matrix[1])
-
-    if output_bed:
+    cwd = os.getcwd()
+    if not output_bed:
         #Output bed for training and testing windows
         train_positive = window_seqs_names[train_shuffle_ind[0]]
         train_negative = control_window_names[train_shuffle_ind[1]]
         test_positive = window_seqs_names[test_shuffle_ind[0]]
         test_negative = control_window_names[test_shuffle_ind[1]]
-        seq_name_bed(f"../output/{fname}_eccdna_train_positive.bed", train_positive)
-        seq_name_bed(f"../output/{fname}_eccdna_train_negative.bed", train_negative)
-        seq_name_bed(f"../output/{fname}_eccdna_test_positive.bed", test_positive)
-        seq_name_bed(f"../output/{fname}_eccdna_test_negative.bed", test_negative)
-
+        seq_name_bed(f"{cwd}/output/{fname}_eccdna_train_positive.bed", train_positive)
+        seq_name_bed(f"{cwd}/output/{fname}_eccdna_train_negative.bed", train_negative)
+        seq_name_bed(f"{cwd}/output/{fname}_eccdna_test_positive.bed", test_positive)
+        seq_name_bed(f"{cwd}/output/{fname}_eccdna_test_negative.bed", test_negative)
+    if isinstance(output_bed, str):
+        #Output bed for training and testing windows
+        train_positive = window_seqs_names[train_shuffle_ind[0]]
+        train_negative = control_window_names[train_shuffle_ind[1]]
+        test_positive = window_seqs_names[test_shuffle_ind[0]]
+        test_negative = control_window_names[test_shuffle_ind[1]]
+        seq_name_bed(f"{output_bed}/{fname}_eccdna_train_positive.bed", train_positive)
+        seq_name_bed(f"{output_bed}/{fname}_eccdna_train_negative.bed", train_negative)
+        seq_name_bed(f"{output_bed}/{fname}_eccdna_test_positive.bed", test_positive)
+        seq_name_bed(f"{output_bed}/{fname}_eccdna_test_negative.bed", test_negative)
 ##For prediction based on pre-trained models
 def eccDNA_CNN_predict(control_flank_split_array,
                        eccDNA_flank_split_array,
@@ -499,14 +510,21 @@ def eccDNA_CNN_predict(control_flank_split_array,
             Dropout(0.2),
             Dense(2, activation = 'softmax')
         ])
-    
+    cwd = os.getcwd()
     #Load pre-trained model
     model_name = f"{chosen_model}_seq_only_ensemble_base_tf115"
-    model.load_weights(f"../pre_trained_models/{model_name}")
+    model.load_weights(f"{cwd}/pre_trained_models/{model_name}")
     prediction = model.predict(test_x)
     prediction_window = prediction[:int(prediction.shape[0]/2)]
-    if output_prob:
+    if not output_prob:
         #Write prediction bed files
         test_seq_names = window_seqs_names[test_shuffle_ind[0]]
-        save_prediction_result(f"../output/{fname}_prob.tsv", test_seq_names, prediction_window)
+        save_prediction_result(f"{cwd}/output/{fname}_prob.tsv", test_seq_names, prediction_window)
+    elif isinstance(output_prob, str):
+        #Write prediction bed files
+        test_seq_names = window_seqs_names[test_shuffle_ind[0]]
+        save_prediction_result(f"{output_prob}", test_seq_names, prediction_window)
+    
+        
+        
         

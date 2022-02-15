@@ -27,11 +27,11 @@ parser.add_argument('-model',
                     '--chosen-model',
                     choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "leukocytes", "muscle", "pool_LCN", "pool_LCT"],
                     type=str,
-                    help='Choose pre-trained models for predicting eccDNAs.')
+                    help='Choose pre-trained models for predicting eccDNAs [default: ./pre_trained_models]')
 parser.add_argument('-out',
                     '--output-prob',
-                    action = "store_true",
-                    help='Output probability of eccDNAs present in given genomic windoes.')
+                    type=str,
+                    help='File name directory of the probability of eccDNAs present in given genomic windoes [default: ./output/*_prob.tsv]')
 
 args = parser.parse_args()
 arr = preprocessing(ncpus = args.number_of_cpus, genome_fa = args.genome_fasta, genome = args.genome, eccdna_bed_dir = args.eccDNA_bed)
