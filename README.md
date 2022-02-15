@@ -7,14 +7,19 @@ Predict eccDNA based on CNN
 conda env create -f environment.yml
 ```
 # Quick start
-Predict eccDNAs based on given bed files
+Download and unzip genome lengths by chromosomes and fasta files of [hg38 from Google Drive](https://drive.google.com/u/0/uc?id=1jiN-RlOeVvAWpEsm2PQLsSf0mRCzuRji&export=download)
 ```Python
-python3 DeepCircle_predict.py -c 8 -fa ../genome/hg38_noalt.fa -g ../genome/hg38_noalt.fa.genome -bed ../example/leukocytes_circleseq_eccdna_filt_uniq.bed -model HeLaS3 -out
+python3 ./Download_genome.py 
 ```
 
 Train CNN based on provided eccDNA
 ```Python
-python3 DeepCircle_train.py -c 8 -fa ../genome/hg38_noalt.fa -g ../genome/hg38_noalt.fa.genome -bed ../example/leukocytes_circleseq_eccdna_filt_uniq.bed -r 0.2 -epo 5 -batch 100 -out
+python3 ./bin/DeepCircle_train.py -c 8 -fa ./genome/hg38_noalt.fa -g ./genome/hg38_noalt.fa.genome -bed ./example/leukocytes_circleseq_eccdna_filt_uniq.bed -r 0.2 -epo 5 -batch 100
+```
+
+Predict eccDNAs based on given bed files
+```Python
+python3 ./bin/DeepCircle_predict.py -c 8 -fa ./genome/hg38_noalt.fa -g ./genome/hg38_noalt.fa.genome -bed ./example/leukocytes_circleseq_eccdna_filt_uniq.bed -model HeLaS3
 ```
 
 # Advance usage
@@ -41,14 +46,15 @@ optional arguments:
                         Number of epochs for training
   -batch BATCH_SIZE, --batch-size BATCH_SIZE
                         Number of batch size for training
-  -out, --output-prediction
-                        Output prediction results of the model
-
+  -dir OUTPUT_PREDICTION, --output-prediction OUTPUT_PREDICTION
+                        Directory to output prediction results of the model
+                        [default: ./output]
 ```
 
 # Prediction
 ```
 usage: DeepCircle_predict.py [-c <int>] [-fa <dir>] [-g <dir>] [-bed <dir>] [-out] [-model {C4-2, ES2, LnCap, OVCAR8, PC-3, U937, leukocytes, muscle, pool_LCN, pool_LCT}]
+
 Predict the probability of eccDNAs present in the given genomic intervals.
 
 optional arguments:
@@ -63,7 +69,10 @@ optional arguments:
   -bed ECCDNA_BED, --eccDNA-bed ECCDNA_BED
                         Directory to the bed file containing eccDNAs
   -model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}, --chosen-model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}
-                        Choose pre-trained models for predicting eccDNAs.
-  -out, --output-prob   Output probability of eccDNAs present in given genomic
-                        windows.
+                        Choose pre-trained models for predicting eccDNAs
+                        [default: ./pre_trained_models]
+  -out OUTPUT_PROB, --output-prob OUTPUT_PROB
+                        File name directory of the probability of eccDNAs
+                        present in given genomic windoes [default:
+                        ./output/*_prob.tsv]
 ```
