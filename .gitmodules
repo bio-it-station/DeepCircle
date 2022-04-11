@@ -1,0 +1,3 @@
+[submodule "DNABERT"]
+	path = DNABERT
+	url = https://github.com/chen77526/DNABERT_on_eccDNA.git
