@@ -27,7 +27,7 @@ def get_fasta(fp):
             else:
                 seq.append(line)
         if name: yield (name, ''.join(seq))
-def get_1000_window(input_bed, genome_dir):
+def get_1000_window(input_bed, genome_dir, out_dir):
     chrm = []
     start = [] 
     end = []
@@ -75,13 +75,12 @@ def get_1000_window(input_bed, genome_dir):
     print("Number of records with exceeding boundary: ", number_of_overbound)
     print("Number of records coordinate < 0:", lower_than_0)
 
-    match = re.search("(\w+\.bed)", input_bed)
-    fname = match.group()
+    fname = input_bed.split("/")[-1]
     fname = fname.split(".")[0]
     cwd = os.getcwd()
-    window_out_path = f"{cwd}/output/{fname}_1000_window.bed"
-    smaller_out_path = f"{cwd}/output/{fname}_smaller_1000.bed"
-    larger_out_path = f"{cwd}/output/{fname}_larger_1000.bed"
+    window_out_path = f"{out_dir}/{fname}_1000_window.bed"
+    smaller_out_path = f"{out_dir}/{fname}_smaller_1000.bed"
+    larger_out_path = f"{out_dir}/{fname}_larger_1000.bed"
 
     window_seq_name_list = seq_name_list = [":".join([bed[0], "-".join([bed[1], bed[2]])])for bed in window_1000]
     smaller_seq_name_list = seq_name_list = [":".join([bed[0], "-".join([bed[1], bed[2]])])for bed in smaller_1000]
@@ -275,11 +274,11 @@ def get_train_test(control_array, eccDNA_array, test_ratio = 0.2):
     test_y_org = np.array(test_y_org, dtype = "int8")
     return(train_x, train_y, test_x, test_y, test_y_org, train_shuffle_ind, test_shuffle_ind)
 
-def get_callbacks(name):
+def get_callbacks(name, out_dir):
     cwd = os.getcwd()
     return [
         tf.keras.callbacks.ModelCheckpoint(
-        filepath = f"{cwd}/output/models/"+name,
+        filepath = f"{out_dir}/models/"+name,
         monitor="val_binary_crossentropy",
         verbose=1,
         save_best_only=True,
@@ -292,7 +291,7 @@ def get_callbacks(name):
 def get_optimizer():
     return tf.keras.optimizers.Adam(learning_rate=0.001)
 
-def compile_and_fit(name, train_x, train_y, optimizer=None, epochs=100, batch_size = 32):
+def compile_and_fit(name, train_x, train_y, out_dir, optimizer=None, epochs=100, batch_size = 32):
     if optimizer is None:
         optimizer = get_optimizer()
     n_timesteps, n_features, n_outputs = train_x.shape[1], train_x.shape[2], 2
@@ -320,7 +319,7 @@ def compile_and_fit(name, train_x, train_y, optimizer=None, epochs=100, batch_si
         epochs = epochs,
         validation_split = 0.2,
         batch_size = batch_size,
-        callbacks = get_callbacks(name),
+        callbacks = get_callbacks(name, out_dir = out_dir),
         verbose = 0)
     return(model)
 
@@ -373,8 +372,32 @@ def save_prediction_result(fname, test_seq_names, prediction_result):
         for ind, prob in enumerate(prediction_result):
             writer.writerow([test_seq_names[ind], prob[0], prob[1]])
     print(f"Results written to: {fname}")
+
+def gen_pred_pos_neg(fname, test_seq_names, prediction_result, genome_fa):
+    pos_bed = f"{fname}_pred_positive.bed"
+    neg_bed = f"{fname}_pred_negative.bed"
+    pos_fa = f"{fname}_pred_positive.fa"
+    neg_fa = f"{fname}_pred_negative.fa"
+    with open(pos_bed, 'w', newline='') as pos_out:
+        with open(neg_bed, 'w', newline='') as neg_out:
+            writer_pos_out = csv.writer(pos_out, delimiter='\t')
+            writer_neg_out = csv.writer(neg_out, delimiter='\t')
+            for ind, prob in enumerate(prediction_result):
+                chrm = test_seq_names[ind].split(":")[0]
+                start, end = test_seq_names[ind].split(":")[1].split("-")
+                seq_name_sep = [chrm, start, end]
+                if prob[1] >= 0.5:
+                    writer_pos_out.writerow(seq_name_sep)
+                else:
+                    writer_neg_out.writerow(seq_name_sep)
+    #Convert bed files to fasta files
+    os.system(f"bedtools getfasta -fi {genome_fa} -bed {pos_bed} -fo {pos_fa}")
+    os.system(f"bedtools getfasta -fi {genome_fa} -bed {neg_bed} -fo {neg_fa}")
+
+    print(f"Results written to: {pos_bed}, {neg_bed}, {pos_fa}, {neg_fa}")
             
 def seq_name_bed(fname, seq_name_list):
+    
     with open(fname, 'w', newline='') as out:
         writer = csv.writer(out, delimiter='\t')
         for seq_name in seq_name_list:
@@ -383,23 +406,26 @@ def seq_name_bed(fname, seq_name_list):
             seq_name_sep = [chrm, start, end]
             writer.writerow(seq_name_sep)
 
-#Preprocessing
-def preprocessing(ncpus, genome_fa, genome, eccdna_bed_dir):
-    #Convert eccDNA bed to 1000 bp window bed
+#Preprocess genome fasta, eccDNA bed files to generate positive and negative label data
+def preprocessing(ncpus, genome_fa, genome, genome_gap, eccdna_bed_dir, out_dir):
     
-    match = re.search("(\w+\.bed)", eccdna_bed_dir)
-    fname = match.group()
+    #Convert eccDNA bed to 1000 bp window bed
+    fname = eccdna_bed_dir.split("/")[-1]
     fname = fname.split(".")[0]
     cwd = os.getcwd()
-    if not os.path.isdir(f"{cwd}/output"):
-        os.system("mkdir output")
-    get_1000_window(eccdna_bed_dir, genome)
+
+    #Check if output directory exists, if not, make dir
+    if not os.path.isdir(out_dir):
+        os.system(f"mkdir {out_dir}")
+    get_1000_window(eccdna_bed_dir, genome, out_dir)
     #Check if there's output directory
     #Shuffle the 1000 bp window
-    window_bed_Dir = f'{cwd}/output/{fname}_1000_window.bed'
-    Con_bed_Dir = f'{cwd}/output/rand_{fname}_1000_window.bed'
-    small_eccDNA_bed_Dir = f'{cwd}/output/{fname}_smaller_1000.bed'
-    os.system(f"bedtools shuffle -i {window_bed_Dir} -g {genome} -excl {window_bed_Dir} -maxTries 5000  > {Con_bed_Dir}")
+    window_bed_Dir = f'{out_dir}/{fname}_1000_window.bed'
+    Con_bed_Dir = f'{out_dir}/rand_{fname}_1000_window.bed'
+    small_eccDNA_bed_Dir = f'{out_dir}/{fname}_smaller_1000.bed'
+    excl_bed_Dir = f'{out_dir}/{fname}_1000_window_excl.bed'
+    os.system(f"cat {genome_gap} {window_bed_Dir} | sort -k1,1 -k2,2n > {excl_bed_Dir}")
+    os.system(f"bedtools shuffle -i {window_bed_Dir} -g {genome} -excl {excl_bed_Dir} -maxTries 5000  > {Con_bed_Dir}")
 
     #Convert bed to fasta
     bed_list = [window_bed_Dir, small_eccDNA_bed_Dir, Con_bed_Dir]
@@ -433,7 +459,39 @@ def preprocessing(ncpus, genome_fa, genome, eccdna_bed_dir):
     control_flank_split_array = control_flank_split_array[uniq_control_ind]
     eccDNA_flank_split_array = eccDNA_flank_split_array[uniq_window_ind]
     end = time.time()
-    elapsed_time = (end -start)/60   
+    elapsed_time = (end -start)/60
+    print(f"Finished converting {fname} DNA seq to tensors, took {elapsed_time} min")
+    return([control_flank_split_array, eccDNA_flank_split_array, control_window_names, window_seqs_names])
+
+def fa_to_arr(ncpus, window_fa_Dir, small_eccDNA_fa_Dir, Con_fa_Dir):
+
+    #Convert fasta to numpy array
+    window_names, window_seqs = read_fasta(window_fa_Dir)
+    eccDNA_names_smaller_1000, eccDNA_seqs_smaller_1000 = read_fasta(small_eccDNA_fa_Dir)
+    control_names, control_1000_window_seqs_list = read_fasta(Con_fa_Dir)
+    start = time.time()
+    eccDNA_inputs = split_data_to_chunks([eccDNA_names_smaller_1000, eccDNA_seqs_smaller_1000], num_chunks = ncpus)
+    window_inputs = split_data_to_chunks([window_names, window_seqs], num_chunks = ncpus)
+    control_inputs = split_data_to_chunks([control_names, control_1000_window_seqs_list], num_chunks = ncpus)
+    pool = Pool(ncpus)
+    eccDNA_name_seq_array = pool.starmap(seq_to_array, eccDNA_inputs)
+    window_name_seq_array = pool.starmap(seq_to_array, window_inputs)
+    control_name_seq_array = pool.starmap(seq_to_array, control_inputs)
+    eccDNA_window_control_combined = [tuple([eccDNA_name_seq_array[i], window_name_seq_array[i], 
+                                        control_name_seq_array[i]]) for i in range(len(eccDNA_name_seq_array))]
+    flank_split_array = pool.starmap(split_array, eccDNA_window_control_combined)
+
+    control_flank_split_array = np.concatenate([flank_split_array[i][0] for i in range(len(flank_split_array))])
+    eccDNA_flank_split_array = np.concatenate([flank_split_array[i][1] for i in range(len(flank_split_array))])
+    control_window_names = np.concatenate([flank_split_array[i][2] for i in range(len(flank_split_array))])
+    window_seqs_names = np.concatenate([flank_split_array[i][3] for i in range(len(flank_split_array))])
+
+    control_window_names, uniq_control_ind = np.unique(control_window_names, return_index=True)
+    window_seqs_names, uniq_window_ind = np.unique(window_seqs_names, return_index=True)
+    control_flank_split_array = control_flank_split_array[uniq_control_ind]
+    eccDNA_flank_split_array = eccDNA_flank_split_array[uniq_window_ind]
+    end = time.time()
+    elapsed_time = (end -start)/60
     print(f"Finished converting {fname} DNA seq to tensors, took {elapsed_time} min")
     return([control_flank_split_array, eccDNA_flank_split_array, control_window_names, window_seqs_names])
 
@@ -454,27 +512,18 @@ def eccDNA_CNN_train(control_flank_split_array,
     train_x_window = eccDNA_flank_split_array[train_shuffle_ind[0]]
     train_x_control = control_flank_split_array[train_shuffle_ind[1]]    
     train_x, train_y, _, _, _, _, _ = get_train_test(train_x_control, train_x_window, test_ratio = 0)
-    match = re.search("(\w+\.bed)", eccdna_bed_dir)
-    fname = match.group()
+
+    fname = eccdna_bed_dir.split("/")[-1]
     fname = fname.split(".")[0]
     model_name = fname + "_CNN_model"
-    model = compile_and_fit(model_name, train_x, train_y, optimizer=None, epochs = int(epochs), batch_size = int(batch_size))
+    model = compile_and_fit(model_name, train_x, train_y, out_dir = output_bed,optimizer=None, epochs = int(epochs), batch_size = int(batch_size))
     
     #Output confusion matrix
     confusion_matrix = test_and_confusion_mat(model, model_name, test_x, test_y_org, epi_type= "testing result", cell = model_name)
     print(confusion_matrix[0])
     print(confusion_matrix[1])
     cwd = os.getcwd()
-    if not output_bed:
-        #Output bed for training and testing windows
-        train_positive = window_seqs_names[train_shuffle_ind[0]]
-        train_negative = control_window_names[train_shuffle_ind[1]]
-        test_positive = window_seqs_names[test_shuffle_ind[0]]
-        test_negative = control_window_names[test_shuffle_ind[1]]
-        seq_name_bed(f"{cwd}/output/{fname}_eccdna_train_positive.bed", train_positive)
-        seq_name_bed(f"{cwd}/output/{fname}_eccdna_train_negative.bed", train_negative)
-        seq_name_bed(f"{cwd}/output/{fname}_eccdna_test_positive.bed", test_positive)
-        seq_name_bed(f"{cwd}/output/{fname}_eccdna_test_negative.bed", test_negative)
+    
     if isinstance(output_bed, str):
         #Output bed for training and testing windows
         train_positive = window_seqs_names[train_shuffle_ind[0]]
@@ -485,6 +534,7 @@ def eccDNA_CNN_train(control_flank_split_array,
         seq_name_bed(f"{output_bed}/{fname}_eccdna_train_negative.bed", train_negative)
         seq_name_bed(f"{output_bed}/{fname}_eccdna_test_positive.bed", test_positive)
         seq_name_bed(f"{output_bed}/{fname}_eccdna_test_negative.bed", test_negative)
+
 ##For prediction based on pre-trained models
 def eccDNA_CNN_predict(control_flank_split_array,
                        eccDNA_flank_split_array,
@@ -492,9 +542,9 @@ def eccDNA_CNN_predict(control_flank_split_array,
                        window_seqs_names,
                        eccdna_bed_dir,
                        chosen_model,
+                       genome_fa,
                        output_prob):
-    match = re.search("(\w+\.bed)", eccdna_bed_dir)
-    fname = match.group()
+    fname = eccdna_bed_dir.split("/")[-1]
     fname = fname.split(".")[0]
     
     _, _, test_x, test_y, test_y_org, _, test_shuffle_ind = get_train_test(control_flank_split_array, eccDNA_flank_split_array, test_ratio = 1)
@@ -516,15 +566,49 @@ def eccDNA_CNN_predict(control_flank_split_array,
     model.load_weights(f"{cwd}/pre_trained_models/{model_name}")
     prediction = model.predict(test_x)
     prediction_window = prediction[:int(prediction.shape[0]/2)]
-    if not output_prob:
+
+    if isinstance(output_prob, str):
         #Write prediction bed files
         test_seq_names = window_seqs_names[test_shuffle_ind[0]]
-        save_prediction_result(f"{cwd}/output/{fname}_prob.tsv", test_seq_names, prediction_window)
-    elif isinstance(output_prob, str):
-        #Write prediction bed files
-        test_seq_names = window_seqs_names[test_shuffle_ind[0]]
-        save_prediction_result(f"{output_prob}", test_seq_names, prediction_window)
-    
+        save_prediction_result(f"{output_prob}/{chosen_model}/{fname}_prob.tsv", test_seq_names, prediction_window)
+        gen_pred_pos_neg(f"{output_prob}/{chosen_model}/{fname}", test_seq_names, prediction_window, genome_fa)
         
-        
+def gen_pos_neg_seq(pred_label_dir, pred_seq_dir):
+    pos_ind_list = []
+    neg_ind_list = []
+
+    #Parsing prediction label
+    try:
+        with open(pred_label_dir) as in_f:
+            reader = csv.reader(in_f, delimiter = "\t")
+            for ind, label in reader:
+                if len(ind) == 0:
+                    continue
+                if label == "TP" or label == "FP":
+                    pos_ind_list.append(ind)
+                if label == "TN" or label == "FN":
+                    neg_ind_list.append(ind)
+    except FileNotFoundError:
+        print("Please predict eccDNAs first")
+
+    #Parsing prediction sequences and writing positive and negative results
+    out_pos_dir = pred_seq_dir.split(".tsv")[0] + "_pred_positive.fa"
+    out_neg_dir = pred_seq_dir.split(".tsv")[0] + "_pred_negative.fa"
+    with open(out_pos_dir, "w") as out_pos_seq:
+        with open(out_neg_dir, "w") as out_neg_seq:
+            pos_writer = csv.writer(out_pos_seq)
+            neg_writer = csv.writer(out_neg_seq)
+            with open(pred_seq_dir) as in_seq:
+                reader = csv.reader(in_seq, delimiter = "\t")
+                for ind, seq in reader:
+                    if len(ind) == 0:
+                        continue
+                    if ind in pos_ind_list:
+                        pos_writer.writerow([f">{ind}"])
+                        pos_writer.writerow([seq])
+                    if ind in neg_ind_list:
+                        neg_writer.writerow([f">{ind}"])
+                        neg_writer.writerow([seq])
+    print(f"Written to: {out_pos_dir}, {out_neg_dir}")
+    return([out_pos_dir, out_neg_dir])
         
