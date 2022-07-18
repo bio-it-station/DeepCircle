@@ -146,37 +146,6 @@ optional arguments:
   -dir OUTPUT_PREDICTION, --output-prediction OUTPUT_PREDICTION
                         Directory to output prediction results of the model
                         [default: ./output/CNN]
-(test_DeepCircle) kaili@bits6:~/testing_DeepCircle/DeepCircle$ python3 ./bin/DeepCircle.py CNN-predict -h
-usage: DeepCircle CNN-predict [-h] [-c NUMBER_OF_CPUS] [-fa GENOME_FASTA]
-                              [-gap GENOME_GAP] [-g GENOME] -bed ECCDNA_BED
-                              [-dir OUTPUT_PREDICTION] -model
-                              {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -c NUMBER_OF_CPUS, --number-of-cpus NUMBER_OF_CPUS
-                        Number of cpus [default: 8]
-  -fa GENOME_FASTA, --genome-fasta GENOME_FASTA
-                        Directory to the fasta file of hg38 genome [default:
-                        ./DNABERT/eccdna/genome/human/hg38_noalt.fa]
-  -gap GENOME_GAP, --genome-gap GENOME_GAP
-                        Directory to the bed file of gaps of hg38 genome
-                        [default:
-                        ./DNABERT/eccdna/genome/human/hg38_noalt_gap.bed]
-  -g GENOME, --genome GENOME
-                        Directory to the file containing lengths of each
-                        chromosome in hg38 genome [default:
-                        ./DNABERT/eccdna/genome/human/hg38_noalt.fa.genome]
-  -bed ECCDNA_BED, --eccDNA-bed ECCDNA_BED
-                        Directory to the bed file containing eccDNAs [default:
-                        ./DNABERT/eccdna/db/human/PC-3_circleseq_eccdna_filt_u
-                        niq.bed]
-  -dir OUTPUT_PREDICTION, --output-prediction OUTPUT_PREDICTION
-                        Directory to output prediction results of the model
-                        [default: ./output/CNN]
-  -model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}, --chosen-model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}
-                        Choose pre-trained models for predicting eccDNAs
-                        [default: ./pre_trained_models]
 ```
 ### Fine-tune a DNABERT model
 ```
