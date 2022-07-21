@@ -590,6 +590,7 @@ def gen_pos_neg_seq(pred_label_dir, pred_seq_dir):
                     neg_ind_list.append(ind)
     except FileNotFoundError:
         print("Please predict eccDNAs first")
+        return()
 
     #Parsing prediction sequences and writing positive and negative results
     out_pos_dir = pred_seq_dir.split(".tsv")[0] + "_pred_positive.fa"

@@ -85,7 +85,7 @@ def infer_motif(args):
         in_dir = f"./DNABERT/examples/tsv_result/{args.chosen_model}"
         motif_dir = f"{in_dir}/{args.data_type}_{args.chosen_model}_motifs"
         #Generating positive, negative seqs from prediction results
-        pred_label_dir = f"{in_dir}/{args.data_type}_{args.chosen_model}_result.tsv"
+        pred_label_dir = f"{in_dir}/{args.chosen_model}_{args.data_type}_result.tsv"
         pred_seq_dir = f"{in_dir}/{args.data_type}_seq.tsv"
         pos_dir, neg_dir = gen_pos_neg_seq(pred_label_dir, pred_seq_dir)
         
@@ -226,11 +226,11 @@ parser_CNN_predict.add_argument("-dir",
 
 parser_CNN_predict.add_argument('-model',
                     '--chosen-model',
-                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "leukocytes", \
-                    "muscle", "pool_LCN", "pool_LCT"],
+                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "Leukocytes", \
+                    "Muscle", "Lung-normal", "Lung-tumor"],
                     required = True,
                     type=str,
-                    help='Choose pre-trained models for predicting eccDNAs [default: DeepCircle/DNABERT/examples/ft/]')
+                    help='Choose pre-trained models for predicting eccDNAs [default: DeepCircle/pre_trained_models/]')
 
 #Parser for training DNABERT
 parser_DNABERT_train.add_argument('-bed',
@@ -361,10 +361,10 @@ parser_DNABERT_predict.add_argument("-c",
 
 parser_DNABERT_predict.add_argument('-model',
                     '--chosen-model',
-                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "leukocytes", \
-                    "muscle", "pool_LCN", "pool_LCT"],
+                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "Leukocytes", \
+                    "Muscle", "Lung-normal", "Lung-tumor"],
                     type=str,
-                    help='Choose pre-trained models for predicting eccDNAs [default: DeepCircle/DNABERT/pre_trained_models]')
+                    help='Choose pre-trained models for predicting eccDNAs [default: DeepCircle/DNABERT/examples/ft/]')
 
 #Parser for inferring motifs
 parser_interpret.add_argument('-method',
@@ -374,8 +374,8 @@ parser_interpret.add_argument('-method',
                     help='Choose type of model to that was used to predict eccDNA [default: CNN]')
 parser_interpret.add_argument('-data',
                     '--data-type',
-                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "leukocytes", \
-                    "muscle", "pool_LCN", "pool_LCT"],
+                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "Leukocytes", \
+                    "Muscle", "Lung-normal", "Lung-tumor"],
                     required=True,
                     type=str,
                     help='Choose type of data that was used to predict eccDNA')
@@ -386,8 +386,8 @@ parser_interpret.add_argument('-n',
                     help='Type number of motifs to infer [default: 10]')
 parser_interpret.add_argument('-model',
                     '--chosen-model',
-                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "leukocytes", \
-                    "muscle", "pool_LCN", "pool_LCT"],
+                    choices = ["C4-2", "ES2", "HeLaS3", "LnCap", "OVCAR8", "PC-3", "U937", "Leukocytes", \
+                    "Muscle", "Lung-normal", "Lung-tumor"],
                     type=str,
                     help='Choose pre-trained models for predicting eccDNAs')
 

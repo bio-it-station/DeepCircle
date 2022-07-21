@@ -20,6 +20,9 @@ conda activate DeepCircle
 bash download_genome_and_models.sh
 ```
 
+### If you want to infer eccDNA-related motifs, please download and install the MEME suite (see https://meme-suite.org/meme/doc/install.html?man_type=web)
+
+
 ## Quick start
 
 ## CNN
