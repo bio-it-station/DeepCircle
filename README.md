@@ -1,5 +1,5 @@
 
- <img src="DeepCircle_logo.png" height="218" width="579" style="align:center" />
+ <img src="DeepCircle_logo.gif" height="218" width="579" style="align:center" />
 
 
 ---------------------------------------
@@ -8,21 +8,19 @@ Predict eccDNAs based on CNN and DNABERT
 ## Install
 
 ```sh
-conda create -n DeepCircle python=3.6
-conda activate DeepCircle
-conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
 git clone --recursive https://github.com/KaiLiChang/DeepCircle.git
 cd DeepCircle
-python3 -m pip install --editable .
-python3 -m pip install -r requirements.txt
+conda create -f environment.yml
+conda activate DeepCircle
+```
+
+## Download and unzip reference genome, pre-trained and fine-tuned DNABERT
+
+```
+bash download_genome_and_models.sh
 ```
 
 ## Quick start
-
-Download and unzip genome lengths by chromosomes and fasta files of [hg38 from Google Drive](https://drive.google.com/u/0/uc?id=1jiN-RlOeVvAWpEsm2PQLsSf0mRCzuRji&export=download)
-```Python
-python3 ./Download_genome.py 
-```
 
 ## CNN
 ---
@@ -113,10 +111,10 @@ optional arguments:
 
 ### Predict eccDNAs using a pre-trained CNN model
 ```
-usage: DeepCircle CNN-train [-h] [-c NUMBER_OF_CPUS] [-fa GENOME_FASTA]
-                            [-gap GENOME_GAP] [-g GENOME] -bed ECCDNA_BED
-                            [-r RATIO] [-epo EPOCHS] [-batch BATCH_SIZE]
-                            [-dir OUTPUT_PREDICTION]
+usage: DeepCircle CNN-predict [-h] [-c NUMBER_OF_CPUS] [-fa GENOME_FASTA]
+                              [-gap GENOME_GAP] [-g GENOME] -bed ECCDNA_BED
+                              [-dir OUTPUT_PREDICTION] -model
+                              {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -137,15 +135,12 @@ optional arguments:
                         Directory to the bed file containing eccDNAs [default:
                         ./DNABERT/eccdna/db/human/PC-3_circleseq_eccdna_filt_u
                         niq.bed]
-  -r RATIO, --ratio RATIO
-                        Ratio of data used for testing [default: 0.2]
-  -epo EPOCHS, --epochs EPOCHS
-                        Number of epochs for training [default: 5]
-  -batch BATCH_SIZE, --batch-size BATCH_SIZE
-                        Number of batch size for training [default: 32]
   -dir OUTPUT_PREDICTION, --output-prediction OUTPUT_PREDICTION
                         Directory to output prediction results of the model
                         [default: ./output/CNN]
+  -model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}, --chosen-model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}
+                        Choose pre-trained models for predicting eccDNAs
+                        [default: DeepCircle/DNABERT/examples/ft/]
 ```
 ### Fine-tune a DNABERT model
 ```
@@ -179,9 +174,8 @@ optional arguments:
                         hg38_noalt_gap.bed]
   -k KMER, --kmer KMER  Specify k-mer used to train DNABERT [default: 6]
   -model_path MODEL_PATH, --model_path MODEL_PATH
-                        Directory to the pre-trained DNABERT, see
-                        https://github.com/chen77526/DNABERT_on_eccDNA/
-                        [default: ./DNABERT/6-new-12w-0]
+                        Directory to the pre-trained DNABERT, [default:
+                        ./DNABERT/6-new-12w-0]
   -batch BATCH_SIZE, --batch-size BATCH_SIZE
                         Number of batch size for training
   -epo EPOCHS, --epochs EPOCHS

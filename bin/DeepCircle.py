@@ -230,7 +230,7 @@ parser_CNN_predict.add_argument('-model',
                     "muscle", "pool_LCN", "pool_LCT"],
                     required = True,
                     type=str,
-                    help='Choose pre-trained models for predicting eccDNAs [default: ./pre_trained_models]')
+                    help='Choose pre-trained models for predicting eccDNAs [default: DeepCircle/DNABERT/examples/ft/]')
 
 #Parser for training DNABERT
 parser_DNABERT_train.add_argument('-bed',
@@ -279,7 +279,6 @@ parser_DNABERT_train.add_argument("-model_path",
                     type=str,
                     default = "./DNABERT/6-new-12w-0",
                     help='Directory to the pre-trained DNABERT, \
-                    see https://github.com/chen77526/DNABERT_on_eccDNA/ \
                     [default: ./DNABERT/6-new-12w-0]')
 
 parser_DNABERT_train.add_argument('-batch',
