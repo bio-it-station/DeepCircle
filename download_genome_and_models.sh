@@ -11,6 +11,7 @@ rm hg38.zip
 
 wget $pretrained_DNABERT -O pretrained_DNABERT.zip
 unzip pretrained_DNABERT.zip
+mv 6-new-12w-0 ./DNABERT/
 rm pretrained_DNABERT.zip
 
 wget $fine_tuned_DNABERT -O fine_tuned_DNABERT.zip
