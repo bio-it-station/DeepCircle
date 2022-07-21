@@ -10,7 +10,7 @@ Predict eccDNAs based on CNN and DNABERT
 ```sh
 git clone --recursive https://github.com/KaiLiChang/DeepCircle.git
 cd DeepCircle
-conda create -f environment.yml
+conda env create -f environment.yml
 conda activate DeepCircle
 ```
 
