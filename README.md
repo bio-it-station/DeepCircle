@@ -143,7 +143,7 @@ optional arguments:
                         [default: ./output/CNN]
   -model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}, --chosen-model {C4-2,ES2,HeLaS3,LnCap,OVCAR8,PC-3,U937,leukocytes,muscle,pool_LCN,pool_LCT}
                         Choose pre-trained models for predicting eccDNAs
-                        [default: DeepCircle/DNABERT/examples/ft/]
+                        [default: ./pre_trained_models/]
 ```
 ### Fine-tune a DNABERT model
 ```
