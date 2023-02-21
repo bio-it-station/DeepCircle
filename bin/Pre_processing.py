@@ -19,7 +19,7 @@ def mainf():
 
     with open(f'{output_dir_DNABERT}/genome/human/{args.gap}', 'r') as gap_f:
         with open(f'{output_dir_DNABERT}/db/human/{args.eccdna}', 'r') as input_f:
-            with open(f'{output_dir_DNABERT}/db/human/{args.datatype}_circleseq_eccdna_filt_uniq_seq_{args.extend * 2}.bed', 'w') as output_f:
+            with open(f'{output_dir_DNABERT}/db/human/{args.datatype}_circleseq_eccdna_filt_uniq_tmp_{args.extend * 2}.bed', 'w') as output_f:
                 with open(f'{output_dir_DNABERT}/db/human/{args.datatype}_circleseq_eccdna_filt_uniq_excl_{args.extend * 2}.bed', 'w') as output_ex:
                     ### write genome gap into exclude .bed file (for generating negative label .bed)
                     for line in gap_f:
@@ -39,6 +39,10 @@ def mainf():
                                 output_ex.writelines('%s\t%d\t%d\n' % (name, mid-args.extend, mid+args.extend))
                         else:
                             output_ex.writelines('%s\t%s\t%s' % (name, start, end))
+    
+    ### Shuffle positive .bed file
+    os.system(f"shuf {output_dir_DNABERT}/db/human/{args.datatype}_circleseq_eccdna_filt_uniq_tmp_{args.extend * 2}.bed \
+        > {output_dir_DNABERT}/db/human/{args.datatype}_circleseq_eccdna_filt_uniq_seq_{args.extend * 2}.bed")
 
     ### Generate negative label .bed file
     os.system(f"bedtools shuffle \
