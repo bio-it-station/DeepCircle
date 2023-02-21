@@ -2,6 +2,16 @@
 import argparse
 from CNN_model_util import preprocessing, eccDNA_CNN_train, eccDNA_CNN_predict, gen_pos_neg_seq
 import os    
+
+def Pre_processing(args):
+    #cwd is supposed to be DeepCircle 
+    cwd = os.getcwd()
+    os.system(f"python3 {cwd}/bin/Pre_processing.py \
+        --datatype {args.dataType} \
+        --boundary {args.boundary} \
+        --gap {args.gap} \
+        --genome {args.genome} \
+        --eccdna {args.eccdna}")
     
 def CNN_train(args):
     fname = args.eccDNA_bed.split("/")[-1]
@@ -27,8 +37,7 @@ def DNABERT_train(args):
     cwd = os.getcwd()
     #Data preprocessing
     data_type = args.eccDNA_bed.split("_")[0]
-    os.system(f"{cwd}/DNABERT/eccdna/limit_gen.sh -d {args.species} -c {args.eccDNA_bed} \
-    -t {data_type} -b {args.genome} -r {args.genome_fasta} -g {args.genome_gap}")
+    os.system(f"{cwd}/DNABERT/eccdna/limit_gen.sh -t {data_type}")
     #Fine-tune DNABERT
     os.system(f"python3 {cwd}/DNABERT/examples/run_finetune.py \
     --model_type dnalongcat \
@@ -58,8 +67,7 @@ def DNABERT_predict(args):
     os.chdir("./DNABERT")
     #Data preprocessing
     data_type = args.eccDNA_bed.split("_")[0]
-    os.system(f"./eccdna/limit_gen.sh -d {args.species} -c {args.eccDNA_bed} \
-    -t {data_type} -b {args.genome} -r {args.genome_fasta} -g {args.genome_gap}")
+    os.system(f"./eccdna/limit_gen.sh -t {data_type}")
     #Predict using pre-trained DNABERT
     os.chdir("./examples")
     os.system(f"python3 ./run_finetune.py \
@@ -77,7 +85,7 @@ def DNABERT_predict(args):
     --overwrite_cache \
     --train_type {args.chosen_model} \
     --test_type {data_type}")
-    os.system(f"python3 ./result_transform.py --model {args.chosen_model} --data {data_type}")
+    os.system(f"python3 ./result_transform.py --data {data_type} --len {args.length}")
 
 def infer_motif(args):
     
@@ -109,6 +117,8 @@ parser = argparse.ArgumentParser(prog = "DeepCircle",
 
 subparsers = parser.add_subparsers()
 
+parser_pre_processing = subparsers.add_parser('Pre-processing')
+parser_pre_processing.set_defaults(func = Pre_processing)
 parser_CNN_train = subparsers.add_parser('CNN-train')
 parser_CNN_train.set_defaults(func = CNN_train)
 parser_CNN_predict = subparsers.add_parser('CNN-predict')
@@ -121,6 +131,58 @@ parser_interpret = subparsers.add_parser('infer-motif')
 parser_interpret.set_defaults(func = infer_motif)
 
 # Add the arguments
+
+#Parser for pre-processing
+parser_pre_processing.add_argument("-ext",
+                    "--extend",
+                    type=int,
+                    default=512,
+                    help="Sequence length you want to extend from center"
+)
+
+parser_pre_processing.add_argument("-win",
+                    "--window",
+                    type=int,
+                    default=1000,
+                    help="Window size of sequence in CNN"
+)
+
+parser_pre_processing.add_argument("-l",
+                    "--limit",
+                    type=int,
+                    default=1000,
+                    help="Limit of sequence length"
+)
+
+parser_pre_processing.add_argument("-type",
+                    "--dataType",
+                    type=str,
+                    help="Species name of eccdna"
+)
+
+parser_pre_processing.add_argument("-bound",
+                    "--boundary",
+                    type=str,
+                    help="Genome boundary file name"
+)
+
+parser_pre_processing.add_argument("-g",
+                    "--gap",
+                    type=str,
+                    help="Bedfile name of genome gap"
+)
+
+parser_pre_processing.add_argument("-gen",
+                    "--genome",
+                    type=str,
+                    help="Genome reference file name"
+)
+
+parser_pre_processing.add_argument("-ecc",
+                    "--eccdna",
+                    type=str,
+                    help="Eccdna bedfile name"
+)
 
 #Parser for training CNN
 
@@ -233,41 +295,6 @@ parser_CNN_predict.add_argument('-model',
                     help='Choose pre-trained models for predicting eccDNAs [default: DeepCircle/pre_trained_models/]')
 
 #Parser for training DNABERT
-parser_DNABERT_train.add_argument('-bed',
-                    '--eccDNA-bed',
-                    type=str,
-                    required = True,
-                    default = "PC-3_circleseq_eccdna_filt_uniq.bed",
-                    help='File name of the bed file containing eccDNAs, \
-                    put this file in DeepCircle/DNABERT/eccdna/db/{species}/')
-
-parser_DNABERT_train.add_argument('-sp',
-                    '--species',
-                    type=str,
-                    default = "human",
-                    help="Species from which input data derived, [default: human]")
-
-parser_DNABERT_train.add_argument('-g',
-                    '--genome',
-                    type=str,
-                    default = "hg38_noalt.fa.genome",
-                    help="Name of the file containing lengths of each chromosome in hg38 genome, \
-                    put this file in DeepCircle/DNABERT/eccdna/genome/{species}/ [default: hg38_noalt.fa.genome]")
-
-parser_DNABERT_train.add_argument("-fa",
-                    "--genome-fasta",
-                    type=str,
-                    default = "hg38_noalt.fa",
-                    help='Name of the fasta file of the reference genome, \
-                    put this file in DeepCircle/DNABERT/eccdna/genome/{species}/ [default: hg38_noalt_gap.fa]')
-
-parser_DNABERT_train.add_argument("-gap",
-                    "--genome-gap",
-                    type=str,
-                    default = "hg38_noalt_gap.bed",
-                    help='Name of the bed file containing gaps of the reference genome, \
-                    put this file in DeepCircle/DNABERT/eccdna/genome/{species}/ [default: hg38_noalt_gap.bed]')
-
 parser_DNABERT_train.add_argument("-k",
                     "--kmer",
                     type=int,
@@ -300,41 +327,6 @@ parser_DNABERT_train.add_argument("-c",
                     help="Number of cpus")
 
 #Parser for predicting using DNABERT
-parser_DNABERT_predict.add_argument('-bed',
-                    '--eccDNA-bed',
-                    type=str,
-                    required = True,
-                    default = "PC-3_circleseq_eccdna_filt_uniq.bed",
-                    help='File name of the bed file containing eccDNAs, \
-                    put this file in DeepCircle/DNABERT/eccdna/db/{species}/')
-
-parser_DNABERT_predict.add_argument('-sp',
-                    '--species',
-                    type=str,
-                    default = "human",
-                    help="Species from which input data derived, [default: human]")
-
-parser_DNABERT_predict.add_argument('-g',
-                    '--genome',
-                    type=str,
-                    default = "hg38_noalt.fa.genome",
-                    help="Name of the file containing lengths of each chromosome in hg38 genome, \
-                    put this file in DeepCircle/DNABERT/eccdna/genome/{species}/ [default: hg38_noalt.fa.genome]")
-
-parser_DNABERT_predict.add_argument("-fa",
-                    "--genome-fasta",
-                    type=str,
-                    default = "hg38_noalt.fa",
-                    help='Name of the fasta file of the reference genome, \
-                    put this file in DeepCircle/DNABERT/eccdna/genome/{species}/ [default: hg38_noalt_gap.fa]')
-
-parser_DNABERT_predict.add_argument("-gap",
-                    "--genome-gap",
-                    type=str,
-                    default = "hg38_noalt_gap.bed",
-                    help='Name of the bed file containing gaps of the reference genome, \
-                    put this file in DeepCircle/DNABERT/eccdna/genome/{species}/ [default: hg38_noalt_gap.bed]')
-
 parser_DNABERT_predict.add_argument("-k",
                     "--kmer",
                     type=int,
@@ -365,6 +357,13 @@ parser_DNABERT_predict.add_argument('-model',
                     "Muscle", "Lung-normal", "Lung-tumor"],
                     type=str,
                     help='Choose pre-trained models for predicting eccDNAs [default: DeepCircle/DNABERT/examples/ft/]')
+
+parser_DNABERT_predict.add_argument('-len',
+                    '--length',
+                    choices = [512, 1024],
+                    type=int,
+                    default=1024,
+                    help='Sequence length of data set')
 
 #Parser for inferring motifs
 parser_interpret.add_argument('-method',

@@ -25,6 +25,13 @@ bash download_genome_and_models.sh
 
 ## Quick start
 
+## Pre-processing
+---
+Pre-process the dataset of both models (CNN and DNABERT)
+```Python
+python3 ./bin/DeepCircle.py Pre-processing -type PC-3 -bound hg38_noalt.fa.genome -g hg38_noalt_gap.bed -gen hg38_noalt.fa -ecc PC-3_circleseq_eccdna_filt_uniq.bed
+```
+
 ## CNN
 ---
 Train a CNN based on provided eccDNAs
